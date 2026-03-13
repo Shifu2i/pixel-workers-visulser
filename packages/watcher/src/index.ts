@@ -3,6 +3,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import { WebSocketBroadcaster } from './broadcaster.js'
+import { ChatHandler } from './chatHandler.js'
 import { scanProjectsDir } from './fileWatcher.js'
 import type { WatcherAgent } from './types.js'
 
@@ -15,8 +16,9 @@ const agents = new Map<string, WatcherAgent>()
 console.log('[PixelDev] Starting PixelDev watcher...')
 console.log(`[PixelDev] Watching: ${projectsDir}`)
 
-// Start WebSocket broadcaster
-const broadcaster = new WebSocketBroadcaster(WS_PORT)
+// Start chat handler and WebSocket broadcaster
+const chatHandler = new ChatHandler()
+const broadcaster = new WebSocketBroadcaster(WS_PORT, chatHandler)
 
 // Initial scan
 scanProjectsDir(projectsDir, agents, broadcaster)
@@ -55,12 +57,14 @@ process.on('SIGINT', () => {
   console.log('\n[PixelDev] Shutting down...')
   clearInterval(scanInterval)
   clearInterval(cleanupInterval)
+  chatHandler.cleanup()
   process.exit(0)
 })
 
 process.on('SIGTERM', () => {
   clearInterval(scanInterval)
   clearInterval(cleanupInterval)
+  chatHandler.cleanup()
   process.exit(0)
 })
 

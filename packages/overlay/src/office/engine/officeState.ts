@@ -4,9 +4,9 @@ import { TILE_SIZE } from '../types'
 import { DESK_SPRITE, CHAIR_SPRITE, PLANT_SPRITE } from '../sprites/spriteData'
 import { createCharacter, updateCharacter, OFFICE_SEATS } from './characters'
 
-// Office dimensions: 60 cols × 30 rows
-export const OFFICE_COLS = 60
-export const OFFICE_ROWS = 30
+// Office dimensions matching the background image (~640×800 at 16px tiles)
+export const OFFICE_COLS = 40
+export const OFFICE_ROWS = 50
 
 export class OfficeState {
   characters = new Map<string, Character>()
@@ -17,7 +17,8 @@ export class OfficeState {
   }
 
   private buildFurniture(): void {
-    // Place desks and chairs at each seat position
+    // Furniture is only used in fallback (procedural) mode
+    // When the bg image is loaded, the image contains all furniture
     for (let i = 0; i < OFFICE_SEATS.length; i++) {
       const seat = OFFICE_SEATS[i]
 

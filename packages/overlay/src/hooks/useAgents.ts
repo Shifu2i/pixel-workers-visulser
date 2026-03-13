@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AgentEvent, AgentInfo } from '../types'
+import type { AgentEvent, AgentInfo, ChatMessage } from '../types'
 import { inferLabel } from '../types'
 
 const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:7421'
@@ -12,6 +12,9 @@ export interface AgentsState {
   activity: string[]
   connected: boolean
   sessionStart: number | null
+  chatMessages: Map<string, ChatMessage[]>
+  streamingAgents: Set<string>
+  sendChat: (agentId: string, prompt: string) => void
 }
 
 export function useAgents(): AgentsState {
@@ -19,6 +22,8 @@ export function useAgents(): AgentsState {
   const [activity, setActivity] = useState<string[]>([])
   const [connected, setConnected] = useState(false)
   const [sessionStart, setSessionStart] = useState<number | null>(null)
+  const [chatMessages, setChatMessages] = useState<Map<string, ChatMessage[]>>(new Map())
+  const [streamingAgents, setStreamingAgents] = useState<Set<string>>(new Set())
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -42,12 +47,57 @@ export function useAgents(): AgentsState {
     ws.onmessage = ({ data }: MessageEvent<string>) => {
       if (isUnmountedRef.current) return
 
-      let event: AgentEvent
+      let parsed: any
       try {
-        event = JSON.parse(data) as AgentEvent
+        parsed = JSON.parse(data)
       } catch {
         return
       }
+
+      // Handle chat-response messages
+      if (parsed.type === 'chat-response') {
+        const { agentId, text, done } = parsed as {
+          type: string
+          agentId: string
+          text?: string
+          done: boolean
+        }
+
+        if (!done && text) {
+          setChatMessages((prev) => {
+            const next = new Map(prev)
+            const msgs = [...(next.get(agentId) ?? [])]
+            const last = msgs[msgs.length - 1]
+            if (last && last.role === 'assistant') {
+              msgs[msgs.length - 1] = { ...last, text: last.text + text }
+            } else {
+              msgs.push({ role: 'assistant', text })
+            }
+            next.set(agentId, msgs)
+            return next
+          })
+          setStreamingAgents((prev) => {
+            if (prev.has(agentId)) return prev
+            const next = new Set(prev)
+            next.add(agentId)
+            return next
+          })
+        }
+
+        if (done) {
+          setStreamingAgents((prev) => {
+            if (!prev.has(agentId)) return prev
+            const next = new Set(prev)
+            next.delete(agentId)
+            return next
+          })
+        }
+
+        return
+      }
+
+      // Handle AgentEvent messages
+      const event = parsed as AgentEvent
 
       // Record session start on first event
       setSessionStart((prev) => prev ?? Date.now())
@@ -147,5 +197,21 @@ export function useAgents(): AgentsState {
     }
   }, [connect])
 
-  return { agents, activity, connected, sessionStart }
+  const sendChat = useCallback((agentId: string, prompt: string) => {
+    // Optimistically add the user message
+    setChatMessages((prev) => {
+      const next = new Map(prev)
+      const msgs = [...(next.get(agentId) ?? []), { role: 'user' as const, text: prompt }]
+      next.set(agentId, msgs)
+      return next
+    })
+
+    // Send via WebSocket
+    const ws = wsRef.current
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'chat', agentId, prompt }))
+    }
+  }, [])
+
+  return { agents, activity, connected, sessionStart, chatMessages, streamingAgents, sendChat }
 }

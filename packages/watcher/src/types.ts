@@ -26,3 +26,16 @@ export interface WatcherAgent {
   activeToolNames: Map<string, string>
   lastActivity: number
 }
+
+export interface ChatRequest {
+  type: 'chat'
+  agentId: string
+  prompt: string
+}
+
+export interface ChatResponse {
+  type: 'chat-response'
+  agentId: string
+  text: string
+  done: boolean
+}

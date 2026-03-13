@@ -33,6 +33,11 @@ export const STATE_LABEL_MAP: Record<AgentState, string> = {
   erroring: 'DEBUGGER',
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  text: string
+}
+
 export function inferLabel(history: AgentState[]): string {
   if (history.length === 0) return 'AGENT'
   const counts: Partial<Record<AgentState, number>> = {}

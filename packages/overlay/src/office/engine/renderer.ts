@@ -5,12 +5,36 @@ import { getCachedSprite } from '../sprites/spriteCache'
 import { getCharacterSprite } from './characters'
 import type { AgentInfo } from '../../types'
 
-// Color constants from design system
+// Color constants from design system (fallback when no bg image)
 const COLOR_DARK = '#0D0D0D'
 const COLOR_FLOOR = '#1A1A2E'
 const COLOR_FLOOR_ALT = '#16213E'
 const COLOR_WALL = '#0F3460'
-const COLOR_GRID = '#1E1E3F'
+
+// Background image (loaded once)
+let bgImage: HTMLImageElement | null = null
+let bgLoaded = false
+let bgAttempted = false
+
+export function initRenderer(): Promise<void> {
+  if (bgAttempted) return Promise.resolve()
+  bgAttempted = true
+
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      bgImage = img
+      bgLoaded = true
+      resolve()
+    }
+    img.onerror = () => {
+      // No background image available — fall back to procedural
+      bgLoaded = false
+      resolve()
+    }
+    img.src = '/office-bg.png'
+  })
+}
 
 export function renderOffice(
   ctx: CanvasRenderingContext2D,
@@ -25,42 +49,42 @@ export function renderOffice(
   ctx.fillStyle = COLOR_DARK
   ctx.fillRect(0, 0, canvasW, canvasH)
 
-  // Draw floor tiles
-  for (let r = 0; r < OFFICE_ROWS; r++) {
-    for (let c = 0; c < OFFICE_COLS; c++) {
-      ctx.fillStyle = (r + c) % 2 === 0 ? COLOR_FLOOR : COLOR_FLOOR_ALT
-      ctx.fillRect(
-        Math.round(c * TILE_SIZE * zoom),
-        Math.round(r * TILE_SIZE * zoom),
-        Math.round(TILE_SIZE * zoom),
-        Math.round(TILE_SIZE * zoom),
-      )
+  if (bgLoaded && bgImage) {
+    // Draw the office background image scaled to fill canvas
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(bgImage, 0, 0, canvasW, canvasH)
+  } else {
+    // Fallback: procedural floor + wall
+    for (let r = 0; r < OFFICE_ROWS; r++) {
+      for (let c = 0; c < OFFICE_COLS; c++) {
+        ctx.fillStyle = (r + c) % 2 === 0 ? COLOR_FLOOR : COLOR_FLOOR_ALT
+        ctx.fillRect(
+          Math.round(c * TILE_SIZE * zoom),
+          Math.round(r * TILE_SIZE * zoom),
+          Math.round(TILE_SIZE * zoom),
+          Math.round(TILE_SIZE * zoom),
+        )
+      }
+    }
+    ctx.fillStyle = COLOR_WALL
+    ctx.fillRect(0, 0, canvasW, Math.round(2 * TILE_SIZE * zoom))
+
+    // Draw furniture only in fallback mode
+    for (const item of state.furniture) {
+      const cached = getCachedSprite(item.sprite, zoom)
+      const fx = Math.round(item.x * zoom)
+      const fy = Math.round(item.y * zoom)
+      ctx.drawImage(cached, fx, fy)
     }
   }
 
-  // Draw wall at top
-  ctx.fillStyle = COLOR_WALL
-  ctx.fillRect(0, 0, canvasW, Math.round(2 * TILE_SIZE * zoom))
-
-  // Collect all drawables (furniture + characters) for z-sorting
+  // Collect characters for z-sorting
   interface ZDrawable {
     zY: number
     draw: () => void
   }
   const drawables: ZDrawable[] = []
 
-  // Furniture
-  for (const item of state.furniture) {
-    const cached = getCachedSprite(item.sprite, zoom)
-    const fx = Math.round(item.x * zoom)
-    const fy = Math.round(item.y * zoom)
-    drawables.push({
-      zY: item.zY,
-      draw: () => ctx.drawImage(cached, fx, fy),
-    })
-  }
-
-  // Characters
   for (const ch of state.characters.values()) {
     const agentInfo = agentInfos.get(ch.id)
     const sprite = getCharacterSprite(ch, agentInfo?.state)
@@ -68,7 +92,6 @@ export function renderOffice(
     const drawX = Math.round(ch.x * zoom - cached.width / 2) + ch.jitterX
     const drawY = Math.round(ch.y * zoom - cached.height)
 
-    // Label above character
     const labelText = ch.label
     const drawXCapture = drawX
     const drawYCapture = drawY

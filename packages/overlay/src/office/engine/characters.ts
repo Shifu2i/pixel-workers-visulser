@@ -8,15 +8,17 @@ const TYPE_FRAME_DURATION_SEC = 0.15
 const IDLE_FRAME_DURATION_SEC = 0.4
 const JITTER_INTERVAL_SEC = 0.05
 
-// 6 fixed seats for the office layout
-// Canvas is TILE_SIZE * COLS wide. Seats at these tile positions:
+// 6 fixed seats mapped to desk positions in the office background image.
+// Image is ~640×800px = 40×50 tiles at 16px.
+// Row 1: upper workspace (3 desks side-by-side around y≈200, row ~13)
+// Row 2: lower workspace (3 desks side-by-side around y≈330, row ~21)
 export const OFFICE_SEATS: Seat[] = [
-  { col: 7,  row: 5,  facingDir: Direction.DOWN },  // 0 CODER
-  { col: 22, row: 5,  facingDir: Direction.DOWN },  // 1 TESTER
-  { col: 37, row: 5,  facingDir: Direction.DOWN },  // 2 READER
-  { col: 7,  row: 20, facingDir: Direction.DOWN },  // 3 PLANNER
-  { col: 22, row: 20, facingDir: Direction.DOWN },  // 4 DEPLOYER
-  { col: 37, row: 20, facingDir: Direction.DOWN },  // 5 DEBUGGER
+  { col: 7,  row: 20, facingDir: Direction.DOWN },  // 0 — left desk, upper row
+  { col: 16, row: 20, facingDir: Direction.DOWN },  // 1 — center desk, upper row
+  { col: 25, row: 20, facingDir: Direction.DOWN },  // 2 — right desk, upper row
+  { col: 7,  row: 28, facingDir: Direction.DOWN },  // 3 — left desk, lower row
+  { col: 16, row: 28, facingDir: Direction.DOWN },  // 4 — center desk, lower row
+  { col: 25, row: 28, facingDir: Direction.DOWN },  // 5 — right desk, lower row
 ]
 
 export function tileCenter(col: number, row: number): { x: number; y: number } {
