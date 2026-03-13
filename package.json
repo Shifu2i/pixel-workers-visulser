@@ -5,7 +5,8 @@
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "start": "pnpm --filter pixeldev-watcher start & pnpm --filter pixeldev-overlay preview"
   },
   "workspaces": [
     "packages/*"

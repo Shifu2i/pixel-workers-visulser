@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AgentEvent, AgentInfo } from '../types'
 import { inferLabel } from '../types'
 
-const WS_URL = 'ws://localhost:7421'
+const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:7421'
 const MAX_AGENTS = 6
 const AGENT_IDLE_TIMEOUT_MS = 30_000
 const RECONNECT_DELAY_MS = 2000

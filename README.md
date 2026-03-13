@@ -85,6 +85,28 @@ Start (or resume) any Claude Code session in a project directory — the agent's
 
 ---
 
+## Production
+
+Build both packages, then start with a single command:
+
+```bash
+pnpm -r build
+pnpm start
+```
+
+This runs the watcher and serves the built overlay via `vite preview` on port 7422.
+
+To customise ports or the projects path, copy `.env.example` to `.env` and edit before building:
+
+```bash
+cp .env.example .env
+# edit .env, then:
+pnpm -r build
+pnpm start
+```
+
+---
+
 ## Development
 
 ```bash

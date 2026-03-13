@@ -6,10 +6,10 @@ import { WebSocketBroadcaster } from './broadcaster.js'
 import { scanProjectsDir } from './fileWatcher.js'
 import type { WatcherAgent } from './types.js'
 
-const WS_PORT = 7421
+const WS_PORT = parseInt(process.env.WS_PORT ?? '7421', 10)
 const SCAN_INTERVAL_MS = 3000
 
-const projectsDir = path.join(os.homedir(), '.claude', 'projects')
+const projectsDir = process.env.CLAUDE_PROJECTS_DIR ?? path.join(os.homedir(), '.claude', 'projects')
 const agents = new Map<string, WatcherAgent>()
 
 console.log('[PixelDev] Starting PixelDev watcher...')
